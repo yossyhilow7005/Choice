@@ -3,85 +3,398 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width,
-               initial-scale=1.0,
-               maximum-scale=1.0,
-               user-scalable=no">
+      content="width=device-width,initial-scale=1.0,user-scalable=no">
 
-<title>スイッチ二択</title>
+<title>二択スイッチ</title>
 
 <style>
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
+html,body{
+    margin:0;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    font-family:sans-serif;
+    background:black;
+    -webkit-user-select:none;
+    user-select:none;
 }
 
-#container {
-  display: flex;
-  width: 100vw;
-  height: 100vh;
+#container{
+    display:flex;
+    width:100vw;
+    height:100vh;
 }
 
-.choice {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  opacity: 0.35;
-  transition: all 0.4s;
+.choice{
+    flex:1;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    overflow:hidden;
+
+    opacity:0.25;
+    filter:brightness(40%);
+
+    transition:
+      opacity .4s,
+      filter .4s,
+      transform .4s;
 }
 
-#left { background: #1e90ff; }
-#right { background: #ff4757; }
-
-.choice.active {
-  opacity: 1;
-  outline: 12px solid yellow;
+.choice img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    pointer-events:none;
 }
 
-.choice.selected {
-  flex: 2;
-  opacity: 1;
+.active{
+    opacity:1;
+    filter:brightness(100%);
+    outline:12px solid yellow;
+    transform:scale(1.02);
+    z-index:10;
+}
+
+.selected{
+    flex:1;
+    opacity:1;
+    filter:brightness(100%);
+    transform:none;
+}
+
+#settingsBtn{
+    position:fixed;
+    top:10px;
+    right:10px;
+    z-index:1000;
+
+    width:60px;
+    height:60px;
+
+    border:none;
+    border-radius:50%;
+
+    font-size:32px;
+    background:white;
+}
+
+#settings{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:white;
+    z-index:2000;
+    overflow:auto;
+    padding:20px;
+}
+
+.preview{
+    width:120px;
+    height:120px;
+    object-fit:contain;
+    border:1px solid #ccc;
+}
+
+label{
+    display:block;
+    margin-top:15px;
+}
+
+button{
+    font-size:18px;
 }
 </style>
 </head>
 
 <body>
 
+<button id="settingsBtn">⚙</button>
+
 <div id="container">
-  <div id="left" class="choice"></div>
-  <div id="right" class="choice"></div>
+
+    <div id="left" class="choice">
+        <img id="leftImg">
+    </div>
+
+    <div id="right" class="choice">
+        <img id="rightImg">
+    </div>
+
+</div>
+
+<div id="settings">
+
+<h2>設定</h2>
+
+<h3>左側</h3>
+
+<label>背景色</label>
+<input type="color" id="leftColor">
+
+<label>画像</label>
+<input type="file" id="leftFile" accept="image/*">
+
+<br><br>
+
+<img id="leftPreview" class="preview">
+
+<hr>
+
+<h3>右側</h3>
+
+<label>背景色</label>
+<input type="color" id="rightColor">
+
+<label>画像</label>
+<input type="file" id="rightFile" accept="image/*">
+
+<br><br>
+
+<img id="rightPreview" class="preview">
+
+<hr>
+
+<h3>共通設定</h3>
+
+<label>スキャン速度（秒）</label>
+<input
+    id="scanSpeed"
+    type="number"
+    min="1"
+    max="20"
+    value="3">
+
+<br><br>
+
+<button id="saveBtn">保存</button>
+<button id="closeBtn">閉じる</button>
+
 </div>
 
 <script>
-const choices = [
-  document.getElementById("left"),
-  document.getElementById("right")
-];
 
-let current = 0;
+const left = document.getElementById("left");
+const right = document.getElementById("right");
+
+const leftImg = document.getElementById("leftImg");
+const rightImg = document.getElementById("rightImg");
+
+let activeSide = "left";
+let scanTimer = null;
 let decided = false;
 
-const scan = setInterval(() => {
-  if (decided) return;
-  choices.forEach(c => c.classList.remove("active"));
-  choices[current].classList.add("active");
-  current = (current + 1) % 2;
-}, 3000);
+function loadSettings(){
 
-document.addEventListener("touchstart", e => {
-  e.preventDefault();
-  if (decided) return;
-  decided = true;
-  clearInterval(scan);
-  const selected = (current + 1) % 2;
-  choices[selected].classList.add("selected");
-}, { passive:false });
+    const data =
+      JSON.parse(
+        localStorage.getItem("settings")
+      ) || {};
+
+    left.style.background =
+      data.leftColor || "#1e90ff";
+
+    right.style.background =
+      data.rightColor || "#ff5555";
+
+    if(data.leftImage){
+        leftImg.src = data.leftImage;
+        document.getElementById("leftPreview").src =
+          data.leftImage;
+    }
+
+    if(data.rightImage){
+        rightImg.src = data.rightImage;
+        document.getElementById("rightPreview").src =
+          data.rightImage;
+    }
+
+    document.getElementById("leftColor").value =
+      data.leftColor || "#1e90ff";
+
+    document.getElementById("rightColor").value =
+      data.rightColor || "#ff5555";
+
+    document.getElementById("scanSpeed").value =
+      data.scanSpeed || 3;
+
+    startScan();
+}
+
+function startScan(){
+
+    clearInterval(scanTimer);
+
+    decided = false;
+
+    left.style.display = "flex";
+    right.style.display = "flex";
+
+    left.classList.remove("selected");
+    right.classList.remove("selected");
+
+    left.classList.add("active");
+    right.classList.remove("active");
+
+    activeSide = "left";
+
+    const speed =
+      Number(
+        document.getElementById("scanSpeed").value
+      ) * 1000;
+
+    scanTimer = setInterval(() => {
+
+        if(decided) return;
+
+        if(activeSide === "left"){
+
+            activeSide = "right";
+
+            left.classList.remove("active");
+            right.classList.add("active");
+
+        }else{
+
+            activeSide = "left";
+
+            right.classList.remove("active");
+            left.classList.add("active");
+        }
+
+    }, speed);
+}
+
+function selectCurrent(){
+
+    if(decided) return;
+
+    decided = true;
+
+    clearInterval(scanTimer);
+
+    if(activeSide === "left"){
+
+        right.style.display = "none";
+        left.classList.add("selected");
+
+    }else{
+
+        left.style.display = "none";
+        right.classList.add("selected");
+    }
+}
+
+function openSettings(){
+
+    document.getElementById("settings").style.display =
+      "block";
+}
+
+function closeSettings(){
+
+    document.getElementById("settings").style.display =
+      "none";
+}
+
+document
+.getElementById("settingsBtn")
+.addEventListener("click",(e)=>{
+
+    e.stopPropagation();
+
+    openSettings();
+});
+
+document
+.getElementById("closeBtn")
+.addEventListener("click",closeSettings);
+
+document.body.addEventListener("click",(e)=>{
+
+    if(
+       document.getElementById("settings")
+       .style.display === "block"
+    ){
+        return;
+    }
+
+    if(e.target.id === "settingsBtn"){
+        return;
+    }
+
+    selectCurrent();
+});
+
+document.addEventListener("keydown",(e)=>{
+
+    if(
+        e.key === "Enter" ||
+        e.key === " "
+    ){
+        selectCurrent();
+    }
+});
+
+function fileToBase64(file){
+
+    return new Promise((resolve)=>{
+
+        const reader = new FileReader();
+
+        reader.onload = ()=>{
+
+            resolve(reader.result);
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+document
+.getElementById("saveBtn")
+.addEventListener("click", async ()=>{
+
+    const settings = {
+
+        leftColor:
+          document.getElementById("leftColor").value,
+
+        rightColor:
+          document.getElementById("rightColor").value,
+
+        scanSpeed:
+          document.getElementById("scanSpeed").value
+    };
+
+    const leftFile =
+      document.getElementById("leftFile").files[0];
+
+    const rightFile =
+      document.getElementById("rightFile").files[0];
+
+    if(leftFile){
+        settings.leftImage =
+          await fileToBase64(leftFile);
+    }
+
+    if(rightFile){
+        settings.rightImage =
+          await fileToBase64(rightFile);
+    }
+
+    localStorage.setItem(
+      "settings",
+      JSON.stringify(settings)
+    );
+
+    loadSettings();
+
+    closeSettings();
+});
+
+loadSettings();
+
 </script>
 
 </body>
