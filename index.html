@@ -2,399 +2,334 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width,initial-scale=1.0,user-scalable=no">
-
-<title>二択スイッチ</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>三択スイッチ支援ツール</title>
 
 <style>
 html,body{
-    margin:0;
-    width:100%;
-    height:100%;
-    overflow:hidden;
-    font-family:sans-serif;
-    background:black;
-    -webkit-user-select:none;
-    user-select:none;
+ margin:0;height:100%;overflow:hidden;background:#000;
+ font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+ -webkit-user-select:none;user-select:none;
 }
 
 #container{
-    display:flex;
-    width:100vw;
-    height:100vh;
+ display:flex;
+ width:100vw;
+ height:100vh;
 }
 
 .choice{
-    flex:1;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    overflow:hidden;
-
-    opacity:0.25;
-    filter:brightness(40%);
-
-    transition:
-      opacity .4s,
-      filter .4s,
-      transform .4s;
+ flex:1;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ overflow:hidden;
+ transition:.2s; /* スキャン速度に合わせて少し短縮 */
+ opacity:.25;
+ filter:brightness(40%);
 }
 
 .choice img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    pointer-events:none;
+ width:100%;
+ height:100%;
+ object-fit:contain;
+ pointer-events:none;
 }
 
 .active{
-    opacity:1;
-    filter:brightness(100%);
-    outline:12px solid yellow;
-    transform:scale(1.02);
-    z-index:10;
-}
-
-.selected{
-    flex:1;
-    opacity:1;
-    filter:brightness(100%);
-    transform:none;
+ opacity:1;
+ filter:brightness(100%);
+ outline:12px solid yellow;
+ transform:scale(1.02);
+ z-index:10;
 }
 
 #settingsBtn{
-    position:fixed;
-    top:10px;
-    right:10px;
-    z-index:1000;
+ position:fixed;
+ top:10px;
+ right:10px;
+ z-index:1000;
+ width:60px;
+ height:60px;
+ border-radius:50%;
+ border:none;
+ font-size:30px;
+ cursor:pointer;
+}
 
-    width:60px;
-    height:60px;
-
-    border:none;
-    border-radius:50%;
-
-    font-size:32px;
-    background:white;
+#restartBtn{
+ display:none;
+ position:fixed;
+ bottom:20px;
+ left:50%;
+ transform:translateX(-50%);
+ z-index:1000;
+ font-size:24px;
+ padding:16px 32px;
+ cursor:pointer;
 }
 
 #settings{
-    display:none;
-    position:fixed;
-    inset:0;
-    background:white;
-    z-index:2000;
-    overflow:auto;
-    padding:20px;
+ display:none;
+ position:fixed;
+ inset:0;
+ background:#fff;
+ color:#000;
+ z-index:2000;
+ overflow:auto;
+ padding:20px;
 }
 
 .preview{
-    width:120px;
-    height:120px;
-    object-fit:contain;
-    border:1px solid #ccc;
+ width:120px;
+ height:120px;
+ object-fit:contain;
+ border:1px solid #ccc;
+ display:block;
+ margin-top:5px;
 }
 
-label{
-    display:block;
-    margin-top:15px;
-}
-
-button{
-    font-size:18px;
+input[type=text],input[type=number]{
+ width:100%;
+ max-width:300px;
+ padding:8px;
 }
 </style>
 </head>
 
 <body>
 
-<button id="settingsBtn">⚙</button>
+<button id="settingsBtn">⚙️</button>
+<button id="restartBtn">再スタート</button>
 
 <div id="container">
-
-    <div id="left" class="choice">
-        <img id="leftImg">
-    </div>
-
-    <div id="right" class="choice">
-        <img id="rightImg">
-    </div>
-
+ <div id="left" class="choice"><img id="leftImg"></div>
+ <div id="center" class="choice"><img id="centerImg"></div>
+ <div id="right" class="choice"><img id="rightImg"></div>
 </div>
 
 <div id="settings">
-
 <h2>設定</h2>
 
-<h3>左側</h3>
-
-<label>背景色</label>
-<input type="color" id="leftColor">
-
-<label>画像</label>
-<input type="file" id="leftFile" accept="image/*">
-
-<br><br>
-
+<h3>左</h3>
+<input type="color" id="leftColor"><br><br>
+<input type="file" id="leftFile" accept="image/*"><br><br>
 <img id="leftPreview" class="preview">
+<input type="text" id="leftSpeech" placeholder="ひだり">
 
 <hr>
 
-<h3>右側</h3>
+<h3>中央</h3>
+<input type="color" id="centerColor"><br><br>
+<input type="file" id="centerFile" accept="image/*"><br><br>
+<img id="centerPreview" class="preview">
+<input type="text" id="centerSpeech" placeholder="まんなか">
 
-<label>背景色</label>
-<input type="color" id="rightColor">
+<hr>
 
-<label>画像</label>
-<input type="file" id="rightFile" accept="image/*">
-
-<br><br>
-
+<h3>右</h3>
+<input type="color" id="rightColor"><br><br>
+<input type="file" id="rightFile" accept="image/*"><br><br>
 <img id="rightPreview" class="preview">
+<input type="text" id="rightSpeech" placeholder="みぎ">
 
 <hr>
 
-<h3>共通設定</h3>
+<h3>共通</h3>
+<input type="number" id="scanSpeed" min="1" max="20" value="3"> 秒<br><br>
 
-<label>スキャン速度（秒）</label>
-<input
-    id="scanSpeed"
-    type="number"
-    min="1"
-    max="20"
-    value="3">
-
-<br><br>
-
-<button id="saveBtn">保存</button>
-<button id="closeBtn">閉じる</button>
-
+<button id="saveBtn" style="font-size:18px; padding:10px 20px;">保存</button>
+<button id="closeBtn" style="font-size:18px; padding:10px 20px;">閉じる（破棄）</button>
 </div>
 
 <script>
+const choices = ["left", "center", "right"];
+const defaults = { leftColor: "#666", centerColor: "#666", rightColor: "#666", scanSpeed: 3 };
+let index = 0, timer = null, decided = false;
+let audioUnlocked = false;
 
-const left = document.getElementById("left");
-const right = document.getElementById("right");
-
-const leftImg = document.getElementById("leftImg");
-const rightImg = document.getElementById("rightImg");
-
-let activeSide = "left";
-let scanTimer = null;
-let decided = false;
-
-function loadSettings(){
-
-    const data =
-      JSON.parse(
-        localStorage.getItem("settings")
-      ) || {};
-
-    left.style.background =
-      data.leftColor || "#1e90ff";
-
-    right.style.background =
-      data.rightColor || "#ff5555";
-
-    if(data.leftImage){
-        leftImg.src = data.leftImage;
-        document.getElementById("leftPreview").src =
-          data.leftImage;
-    }
-
-    if(data.rightImage){
-        rightImg.src = data.rightImage;
-        document.getElementById("rightPreview").src =
-          data.rightImage;
-    }
-
-    document.getElementById("leftColor").value =
-      data.leftColor || "#1e90ff";
-
-    document.getElementById("rightColor").value =
-      data.rightColor || "#ff5555";
-
-    document.getElementById("scanSpeed").value =
-      data.scanSpeed || 3;
-
-    startScan();
+// 音声読み上げ関数（ブラウザ制限対策含む）
+function speak(t) {
+  if (!t) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = "ja-JP";
+    speechSynthesis.speak(u);
+  } catch (e) {
+    console.error("Speech error:", e);
+  }
 }
 
-function startScan(){
+// ブラウザの音声再生制限を解除するためのダミー再生
+function unlockAudio() {
+  if (audioUnlocked) return;
+  const u = new SpeechSynthesisUtterance("");
+  speechSynthesis.speak(u);
+  audioUnlocked = true;
+}
 
-    clearInterval(scanTimer);
+function getSettings() {
+  return JSON.parse(localStorage.getItem("switch3") || "{}");
+}
 
-    decided = false;
+function loadSettings() {
+  const s = getSettings();
 
-    left.style.display = "flex";
-    right.style.display = "flex";
+  for (const k of choices) {
+    const color = s[k + "Color"] || defaults[k + "Color"];
+    const imgData = s[k + "Image"] || "";
+    
+    document.getElementById(k).style.backgroundColor = color;
+    document.getElementById(k + "Img").src = imgData;
+    
+    // 設定画面の同期
+    document.getElementById(k + "Color").value = color;
+    document.getElementById(k + "Preview").src = imgData;
+    document.getElementById(k + "Speech").value = s[k + "Speech"] || "";
+    document.getElementById(k + "File").value = ""; // ファイル選択をリセット
+  }
 
-    left.classList.remove("selected");
-    right.classList.remove("selected");
+  scanSpeed.value = s.scanSpeed || defaults.scanSpeed;
+  startScan();
+}
 
-    left.classList.add("active");
-    right.classList.remove("active");
+function startScan() {
+  clearInterval(timer);
+  decided = false;
+  restartBtn.style.display = "none";
 
-    activeSide = "left";
+  choices.forEach(c => {
+    document.getElementById(c).style.display = "flex";
+    document.getElementById(c).classList.remove("active");
+  });
 
-    const speed =
-      Number(
-        document.getElementById("scanSpeed").value
-      ) * 1000;
+  index = 0;
+  document.getElementById(choices[index]).classList.add("active");
 
-    scanTimer = setInterval(() => {
+  const speed = parseFloat(scanSpeed.value) || defaults.scanSpeed;
+  timer = setInterval(() => {
+    if (decided) return;
+    document.getElementById(choices[index]).classList.remove("active");
+    index = (index + 1) % choices.length;
+    document.getElementById(choices[index]).classList.add("active");
+  }, speed * 1000);
+}
 
-        if(decided) return;
+function selectCurrent() {
+  // 設定画面が開いているときは無効化
+  if (decided || settings.style.display === "block") return;
+  decided = true;
+  clearInterval(timer);
+  unlockAudio();
 
-        if(activeSide === "left"){
+  const s = getSettings();
+  const key = choices[index];
 
-            activeSide = "right";
+  choices.forEach(c => {
+    if (c !== key) document.getElementById(c).style.display = "none";
+  });
 
-            left.classList.remove("active");
-            right.classList.add("active");
+  // 音声テキストが空ならプレースホルダーの文字をデフォルトにする
+  const defaultSpeech = { left: "ひだり", center: "まんなか", right: "みぎ" };
+  const text = s[key + "Speech"] || defaultSpeech[key];
+  speak(text);
+  
+  restartBtn.style.display = "block";
+}
 
-        }else{
+// 画面クリック・タップでの決定
+document.body.onclick = e => {
+  if (["settingsBtn", "restartBtn"].includes(e.target.id)) return;
+  if (settings.contains(e.target)) return; // 設定画面内のクリックは無視
+  selectCurrent();
+};
 
-            activeSide = "left";
+// キーボード（外部スイッチ）での決定対応 (Space or Enter)
+document.addEventListener("keydown", e => {
+  if (e.key === " " || e.key === "Enter") {
+    if (settings.style.display === "block") return; // 設定画面時は無効
+    e.preventDefault();
+    if (decided) {
+      startScan(); // 決定済みの状態なら再スタート
+    } else {
+      selectCurrent(); // スキャン中なら決定
+    }
+  }
+});
 
-            right.classList.remove("active");
-            left.classList.add("active");
+// ファイルが選択されたらプレビューに即時反映
+choices.forEach(k => {
+  document.getElementById(k + "File").onchange = async e => {
+    const f = e.target.files[0];
+    if (f) {
+      const base64 = await resizeAndToBase64(f, 400); // 最大400pxにリサイズ
+      document.getElementById(k + "Preview").src = base64;
+    }
+  };
+});
+
+// 画像をリサイズしてBase64にする関数（localStorage容量制限対策）
+function resizeAndToBase64(file, maxSize) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          if (w > maxSize) { h *= maxSize / w; w = maxSize; }
+        } else {
+          if (h > maxSize) { w *= maxSize / h; h = maxSize; }
         }
-
-    }, speed);
-}
-
-function selectCurrent(){
-
-    if(decided) return;
-
-    decided = true;
-
-    clearInterval(scanTimer);
-
-    if(activeSide === "left"){
-
-        right.style.display = "none";
-        left.classList.add("selected");
-
-    }else{
-
-        left.style.display = "none";
-        right.classList.add("selected");
-    }
-}
-
-function openSettings(){
-
-    document.getElementById("settings").style.display =
-      "block";
-}
-
-function closeSettings(){
-
-    document.getElementById("settings").style.display =
-      "none";
-}
-
-document
-.getElementById("settingsBtn")
-.addEventListener("click",(e)=>{
-
-    e.stopPropagation();
-
-    openSettings();
-});
-
-document
-.getElementById("closeBtn")
-.addEventListener("click",closeSettings);
-
-document.body.addEventListener("click",(e)=>{
-
-    if(
-       document.getElementById("settings")
-       .style.display === "block"
-    ){
-        return;
-    }
-
-    if(e.target.id === "settingsBtn"){
-        return;
-    }
-
-    selectCurrent();
-});
-
-document.addEventListener("keydown",(e)=>{
-
-    if(
-        e.key === "Enter" ||
-        e.key === " "
-    ){
-        selectCurrent();
-    }
-});
-
-function fileToBase64(file){
-
-    return new Promise((resolve)=>{
-
-        const reader = new FileReader();
-
-        reader.onload = ()=>{
-
-            resolve(reader.result);
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
-
-document
-.getElementById("saveBtn")
-.addEventListener("click", async ()=>{
-
-    const settings = {
-
-        leftColor:
-          document.getElementById("leftColor").value,
-
-        rightColor:
-          document.getElementById("rightColor").value,
-
-        scanSpeed:
-          document.getElementById("scanSpeed").value
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.7)); // 圧縮率70%のJPEGにする
+      };
+      img.src = e.target.result;
     };
+    reader.readAsDataURL(file);
+  });
+}
 
-    const leftFile =
-      document.getElementById("leftFile").files[0];
+settingsBtn.onclick = () => settings.style.display = "block";
+closeBtn.onclick = () => {
+  settings.style.display = "none";
+  loadSettings(); // 変更を破棄して再読み込み
+};
+restartBtn.onclick = (e) => {
+  e.stopPropagation();
+  startScan();
+};
 
-    const rightFile =
-      document.getElementById("rightFile").files[0];
+saveBtn.onclick = async () => {
+  const s = { scanSpeed: scanSpeed.value };
+  const currentSettings = getSettings();
 
-    if(leftFile){
-        settings.leftImage =
-          await fileToBase64(leftFile);
+  for (const k of choices) {
+    s[k + "Color"] = document.getElementById(k + "Color").value;
+    s[k + "Speech"] = document.getElementById(k + "Speech").value;
+
+    // プレビュー画像（リサイズ済みSrc）をそのまま取得して保存
+    const previewSrc = document.getElementById(k + "Preview").src;
+    if (previewSrc && previewSrc.startsWith("data:image")) {
+      s[k + "Image"] = previewSrc;
+    } else {
+      s[k + "Image"] = currentSettings[k + "Image"] || "";
     }
+  }
 
-    if(rightFile){
-        settings.rightImage =
-          await fileToBase64(rightFile);
-    }
+  localStorage.setItem("switch3", JSON.stringify(s));
+  loadSettings();
+  settings.style.display = "none";
+};
 
-    localStorage.setItem(
-      "settings",
-      JSON.stringify(settings)
-    );
-
-    loadSettings();
-
-    closeSettings();
-});
-
+// 初期化
 loadSettings();
-
 </script>
 
 </body>
